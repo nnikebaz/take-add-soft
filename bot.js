@@ -101,6 +101,7 @@ bot.on("callback_query", (query) => {
   const chatId = query.from.id;
   const username = query.from.username;
   const nowDate = new Date();
+  console.log(chatId)
   const requestTime =
     nowDate.getHours() +
     ":" +
@@ -124,7 +125,6 @@ bot.on("callback_query", (query) => {
       // updateMessageForAll();
       bot.once("photo", (msg) => {
         if (msg.chat.id === chatId) {
-          bot.sendMessage(chatId, "Софт сдан! ✅");
           softStatus[index].busy = false;
           softStatus[index].user = username;
           softStatus[index].requestTime = requestTime;
