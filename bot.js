@@ -15,6 +15,7 @@ const softStatus = [
 
 const chatData = new Map(); // Храним { chatId: messageId }
 const userIds = new Set();
+let groupChatId = null;
 
 // Функция генерации клавиатуры
 const getKeyboard = () => ({
@@ -40,14 +41,27 @@ const sendMainMessage = (chatId) => {
     .then((sentMessage) => {
       chatData.set(chatId, sentMessage.message_id); // Запоминаем message_id для каждого чата
     });
-}
+};
+
+const sendMessageToGroup = (message) => {
+  if (groupChatId) {
+    bot.sendMessage(groupChatId, message);
+  } else {
+    console.log("Group chat ID not found.");
+  }
+};
 
 // Обработчик команды /start
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
+  // Если это первый пользователь, сохраняем chatId группы
+  if (msg.chat.type === "supergroup" || msg.chat.type === "group") {
+    groupChatId = chatId;
+    console.log("Chat ID группы:", chatId);
+  }
+
   userIds.add(chatId);
-  console.log(chatId);
-  sendMainMessage(chatId)
+  sendMainMessage(chatId);
 });
 
 // Функция обновления сообщений у всех пользователей
@@ -81,17 +95,15 @@ bot.on("photo", async (msg) => {
   softStatus[softIndex].busy = false;
   softStatus[softIndex].user = "";
 
-  userIds.forEach((chatId) => {
-    bot
-      .sendPhoto(chatId, fieldId, {
-        caption: `Пользователь @${username} сдал ${softStatus[softIndex].name}`,
-        parse_mode: "MarkdownV2",
-      })
-      .then(() => {
-        console.log("Сообщение отправлено " + chatId);
-      })
-      .catch((error) => console.error("Сообщение не отправлено: ", error));
-  });
+  bot
+    .sendPhoto(groupChatId, fieldId, {
+      caption: `Пользователь @${username} сдал ${softStatus[softIndex].name}`,
+      parse_mode: "MarkdownV2",
+    })
+    .then(() => {
+      console.log("Сообщение отправлено " + chatId);
+    })
+    .catch((error) => console.error("Сообщение не отправлено: ", error));
 
   updateMessageForAll();
 });
@@ -101,7 +113,7 @@ bot.on("callback_query", (query) => {
   const chatId = query.from.id;
   const username = query.from.username;
   const nowDate = new Date();
-  console.log(chatId)
+  console.log(chatId);
   const requestTime =
     nowDate.getHours() +
     ":" +
@@ -128,7 +140,7 @@ bot.on("callback_query", (query) => {
           softStatus[index].busy = false;
           softStatus[index].user = username;
           softStatus[index].requestTime = requestTime;
-          updateMessageForAll()
+          updateMessageForAll();
         }
       });
     } else {
