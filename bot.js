@@ -128,12 +128,13 @@ bot.on("callback_query", (query) => {
   if (softStatus[index].busy) {
     // Если софт занят другим пользователем
     if (softStatus[index].chatId === chatId) {
+      
       // Если пользователь пытается освободить софт
+      bot.answerCallbackQuery(query.id, {
+        text: `${softStatus[index].user}, пришлите скриншот "${softStatus[index].name}"`,
+        show_alert: true,
+      });
 
-      bot.sendMessage(
-        chatId,
-        `${softStatus[index].user}, пришлите скриншот "${softStatus[index].name}"`
-      );
       // updateMessageForAll();
       bot.once("photo", (msg) => {
         if (msg.chat.id === chatId) {
