@@ -8,5 +8,18 @@
   },
   "author": "",
   "license": "ISC",
-  "description": ""
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nnikebaz/take-add-soft.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nnikebaz/take-add-soft/issues"
+  },
+  "homepage": "https://github.com/nnikebaz/take-add-soft#readme",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.8.1",
+    "dotenv": "^16.4.7",
+    "node-telegram-bot-api": "^0.66.0"
+  }
 }
