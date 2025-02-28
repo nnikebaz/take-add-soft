@@ -30,6 +30,26 @@ const getKeyboard = () => ({
   },
 });
 
+const sendMainMessage = (chatId) => {
+  bot
+    .sendMessage(
+      chatId,
+      "Для того, чтобы взять софт нажмите на кнопку нужного софта. Чтобы сдать софт отправьте скриншот софта в чат.",
+      getKeyboard()
+    )
+    .then((sentMessage) => {
+      chatData.set(chatId, sentMessage.message_id); // Запоминаем message_id для каждого чата
+    });
+}
+
+// Обработчик команды /start
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+  userIds.add(chatId);
+  console.log(chatId);
+  sendMainMessage(chatId)
+});
+
 // Функция обновления сообщений у всех пользователей
 const updateMessageForAll = () => {
   chatData.forEach((messageId, chatId) => {
@@ -45,7 +65,6 @@ const updateMessageForAll = () => {
 };
 
 bot.on("photo", async (msg) => {
-  const userId = msg.from.id;
   const username = msg.from.username;
   const chatId = msg.chat.id;
   const photoArray = msg.photo;
@@ -53,18 +72,21 @@ bot.on("photo", async (msg) => {
 
   const softIndex = softStatus.findIndex(
     (soft) => soft.busy && soft.user === username
-  )
+  );
 
   if (softIndex === -1) {
-    return bot.sendMessage(chatId, 'Вы не занимали софт, нечего сдавать')
+    return bot.sendMessage(chatId, "Вы не занимали софт, нечего сдавать");
   }
 
-  softStatus[softIndex].busy = false
-  softStatus[softIndex].user = ""
+  softStatus[softIndex].busy = false;
+  softStatus[softIndex].user = "";
 
   userIds.forEach((chatId) => {
     bot
-      .sendPhoto(chatId, fieldId, { caption: `Пользователь @${username} сдал ${softStatus[softIndex].name}`, parse_mode: "MarkdownV2" })
+      .sendPhoto(chatId, fieldId, {
+        caption: `Пользователь @${username} сдал ${softStatus[softIndex].name}`,
+        parse_mode: "MarkdownV2",
+      })
       .then(() => {
         console.log("Сообщение отправлено " + chatId);
       })
@@ -72,22 +94,6 @@ bot.on("photo", async (msg) => {
   });
 
   updateMessageForAll();
-});
-
-// Обработчик команды /start
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  userIds.add(chatId);
-
-  bot
-    .sendMessage(
-      chatId,
-      "Для того, чтобы взять софт нажмите на кнопку нужного софта. Чтобы сдать софт отправьте скриншот софта в чат.",
-      getKeyboard()
-    )
-    .then((sentMessage) => {
-      chatData.set(chatId, sentMessage.message_id); // Запоминаем message_id для каждого чата
-    });
 });
 
 bot.on("callback_query", (query) => {
@@ -108,13 +114,23 @@ bot.on("callback_query", (query) => {
   // Проверка, если софт уже занят
   if (softStatus[index].busy) {
     // Если софт занят другим пользователем
-    if (softStatus[index].user === username) {
+    if (softStatus[index].chatId === chatId) {
       // Если пользователь пытается освободить софт
-      softStatus[index].busy = false;
-      softStatus[index].user = username; // Убираем пользователя
-      softStatus[index].requestTime = requestTime;
-      updateMessageForAll(); // Обновление всех пользователей
-      bot.sendMessage(chatId, `Вы сдали ${softStatus[index].name}`);
+
+      bot.sendMessage(
+        chatId,
+        `${softStatus[index].user}, пришлите скриншот "${softStatus[index].name}"`
+      );
+      // updateMessageForAll();
+      bot.once("photo", (msg) => {
+        if (msg.chat.id === chatId) {
+          bot.sendMessage(chatId, "Софт сдан! ✅");
+          softStatus[index].busy = false;
+          softStatus[index].user = username;
+          softStatus[index].requestTime = requestTime;
+          updateMessageForAll()
+        }
+      });
     } else {
       // Ответ для пользователя, если софт занят другим
       bot.answerCallbackQuery(query.id, {
@@ -126,6 +142,7 @@ bot.on("callback_query", (query) => {
     // Если софт свободен
     softStatus[index].busy = true;
     softStatus[index].user = username; // Устанавливаем пользователя
+    softStatus[index].chatId = chatId;
     softStatus[index].requestTime = requestTime;
     updateMessageForAll(); // Обновление всех пользователей
     bot.sendMessage(chatId, `Вы взяли ${softStatus[index].name}`);
