@@ -78,6 +78,7 @@ bot.on("photo", async (msg) => {
   const chatId = msg.chat.id;
   const photoArray = msg.photo;
   const fieldId = photoArray[photoArray.length - 1].file_id;
+  const nowDate = new Date();
   const requestTime =
   nowDate.getHours() +
   ":" +
