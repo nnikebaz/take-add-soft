@@ -78,6 +78,12 @@ bot.on("photo", async (msg) => {
   const chatId = msg.chat.id;
   const photoArray = msg.photo;
   const fieldId = photoArray[photoArray.length - 1].file_id;
+  const requestTime =
+  nowDate.getHours() +
+  ":" +
+  (nowDate.getMinutes() < 10
+    ? "0" + nowDate.getMinutes()
+    : nowDate.getMinutes());
 
   const softIndex = softStatus.findIndex(
     (soft) => soft.busy && soft.user === username
@@ -89,6 +95,8 @@ bot.on("photo", async (msg) => {
 
   softStatus[softIndex].busy = false;
   softStatus[softIndex].user = username;
+  softStatus[softIndex].requestTime = requestTime;
+  updateMessageForAll();
 
   bot
     .sendPhoto(groupChatId, fieldId, {
@@ -99,8 +107,6 @@ bot.on("photo", async (msg) => {
       console.log("Сообщение отправлено " + chatId);
     })
     .catch((error) => console.error("Сообщение не отправлено: ", error));
-
-  updateMessageForAll();
 });
 
 bot.on("callback_query", (query) => {
@@ -136,14 +142,6 @@ bot.on("callback_query", (query) => {
       show_alert: true,
     });
 
-    bot.once("photo", (msg) => {
-      if (msg.chat.id === chatId) {
-        softStatus[index].busy = false;
-        softStatus[index].user = username;
-        softStatus[index].requestTime = requestTime;
-        updateMessageForAll();
-      }
-    });
   } else if (softStatus[index].busy && softStatus[index].chatId !== chatId) {
     bot.answerCallbackQuery(query.id, {
       text: "Этот софт уже занят",
