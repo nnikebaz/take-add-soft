@@ -11,6 +11,9 @@ const softStatus = [
   { name: "Софт 3", busy: false, user: "", requestTime: "" },
   { name: "Софт 4", busy: false, user: "", requestTime: "" },
   { name: "Софт 5", busy: false, user: "", requestTime: "" },
+  { name: "Софт 6", busy: false, user: "", requestTime: "" },
+  { name: "Софт 7", busy: false, user: "", requestTime: "" },
+  { name: "Софт 8", busy: false, user: "", requestTime: "" },
 ];
 
 const chatData = new Map(); // Храним { chatId: messageId }
@@ -93,7 +96,7 @@ bot.on("photo", async (msg) => {
   }
 
   softStatus[softIndex].busy = false;
-  softStatus[softIndex].user = "";
+  softStatus[softIndex].user = username;
 
   bot
     .sendPhoto(groupChatId, fieldId, {
@@ -124,9 +127,18 @@ bot.on("callback_query", (query) => {
   // Ответ на callbackQuery сразу, чтобы избежать ошибки с устаревшим запросом
   bot.answerCallbackQuery(query.id);
 
+  //Если уже есть софт
+  const userHasSoft = softStatus.some((soft) => soft.busy && soft.chatId === chatId)
+  if (userHasSoft) {
+    bot.answerCallbackQuery(query.id, {
+      text: 'Вы уже взяли один софт. Один софт в одни руки!',
+      show_alert: true,
+    })
+  }
+
   // Проверка, если софт уже занят
   if (softStatus[index].busy) {
-    // Если софт занят другим пользователем
+    
     if (softStatus[index].chatId === chatId) {
       
       // Если пользователь пытается освободить софт
@@ -135,7 +147,6 @@ bot.on("callback_query", (query) => {
         show_alert: true,
       });
 
-      // updateMessageForAll();
       bot.once("photo", (msg) => {
         if (msg.chat.id === chatId) {
           softStatus[index].busy = false;
@@ -144,12 +155,12 @@ bot.on("callback_query", (query) => {
           updateMessageForAll();
         }
       });
-    } else {
-      // Ответ для пользователя, если софт занят другим
-      bot.answerCallbackQuery(query.id, {
-        text: "Этот софт уже занят",
-        show_alert: true,
-      });
+    } else if (softStatus[index].chatId !== chatId) {
+            // Ответ для пользователя, если софт занят другим
+            bot.answerCallbackQuery(query.id, {
+              text: "Этот софт уже занят",
+              show_alert: true,
+            });
     }
   } else {
     // Если софт свободен
