@@ -46,14 +46,6 @@ const sendMainMessage = (chatId) => {
     });
 };
 
-const sendMessageToGroup = (message) => {
-  if (groupChatId) {
-    bot.sendMessage(groupChatId, message);
-  } else {
-    console.log("Group chat ID not found.");
-  }
-};
-
 // Обработчик команды /start
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
@@ -116,7 +108,6 @@ bot.on("callback_query", (query) => {
   const chatId = query.from.id;
   const username = query.from.username;
   const nowDate = new Date();
-  console.log(chatId);
   const requestTime =
     nowDate.getHours() +
     ":" +
@@ -127,43 +118,38 @@ bot.on("callback_query", (query) => {
   // Ответ на callbackQuery сразу, чтобы избежать ошибки с устаревшим запросом
   bot.answerCallbackQuery(query.id);
 
-  //Если уже есть софт
-  const userHasSoft = softStatus.some((soft) => soft.busy && soft.chatId === chatId)
-  if (userHasSoft) {
+  const alreadyTaken = softStatus.some(
+    (soft) => soft.busy && soft.user === username
+  );
+
+  if (alreadyTaken && !softStatus[index].busy) {
     bot.answerCallbackQuery(query.id, {
-      text: 'Вы уже взяли один софт. Один софт в одни руки!',
+      text: "Вы уже заняли один софт. Сдайте его перед тем, как взять другой!",
       show_alert: true,
-    })
+    });
+    return;
   }
 
-  // Проверка, если софт уже занят
-  if (softStatus[index].busy) {
-    
-    if (softStatus[index].chatId === chatId) {
-      
-      // Если пользователь пытается освободить софт
-      bot.answerCallbackQuery(query.id, {
-        text: `${softStatus[index].user}, пришлите скриншот "${softStatus[index].name}"`,
-        show_alert: true,
-      });
+  if (softStatus[index].busy && softStatus[index].chatId === chatId) {
+    bot.answerCallbackQuery(query.id, {
+      text: `${softStatus[index].user}, пришлите скриншот "${softStatus[index].name}"`,
+      show_alert: true,
+    });
 
-      bot.once("photo", (msg) => {
-        if (msg.chat.id === chatId) {
-          softStatus[index].busy = false;
-          softStatus[index].user = username;
-          softStatus[index].requestTime = requestTime;
-          updateMessageForAll();
-        }
-      });
-    } else if (softStatus[index].chatId !== chatId) {
-            // Ответ для пользователя, если софт занят другим
-            bot.answerCallbackQuery(query.id, {
-              text: "Этот софт уже занят",
-              show_alert: true,
-            });
-    }
+    bot.once("photo", (msg) => {
+      if (msg.chat.id === chatId) {
+        softStatus[index].busy = false;
+        softStatus[index].user = username;
+        softStatus[index].requestTime = requestTime;
+        updateMessageForAll();
+      }
+    });
+  } else if (softStatus[index].busy && softStatus[index].chatId !== chatId) {
+    bot.answerCallbackQuery(query.id, {
+      text: "Этот софт уже занят",
+      show_alert: true,
+    });
   } else {
-    // Если софт свободен
     softStatus[index].busy = true;
     softStatus[index].user = username; // Устанавливаем пользователя
     softStatus[index].chatId = chatId;
@@ -171,4 +157,5 @@ bot.on("callback_query", (query) => {
     updateMessageForAll(); // Обновление всех пользователей
     bot.sendMessage(chatId, `Вы взяли ${softStatus[index].name}`);
   }
+
 });
